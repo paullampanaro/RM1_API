@@ -1,0 +1,252 @@
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<link href='https://fonts.googleapis.com/css?family=Orbitron' rel='stylesheet' type='text/css'>
+	<title>Lazy Sunday</title>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+	<script>
+		<!-- the main script tag -->
+		var zipCode = "14623";
+        var movieRadius = "20";
+		var radius = "50000";
+		var d = new Date();
+        var today = d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate();
+		
+		var movieKeyGreg = "8bs279sdqrrnax33t55tay5h";
+        var movieKeyPaul = "xxkykuras934jgvuprwb4f2f";
+		var movieBase = "https://data.tmsapi.com/v1.1/movies/showings";
+		
+		var weatherKey = "a1962d36d2a5912f6c3322314f393e2a";
+		var weatherBase = "http://api.openweathermap.org/data/2.5/weather";
+		
+		var value;
+		var area;
+		
+		window.onload = init;
+		
+		// establish map 
+		function init(){
+			document.querySelector("#search").onclick = getData;
+		}
+		
+		// get data from both API's
+		function getData(){
+		
+			// utilize session storage
+			if(typeof(Storage) !== "undefined") {
+				sessionStorage.clear();
+				
+				if(!value)
+					sessionStorage.setItem('prevZip', 'No previous search yet.')
+				else
+					sessionStorage.setItem('prevZip', value);
+					
+				if(!area)
+					sessionStorage.setItem('prevLocation', 'No previous search yet.')
+				else
+					sessionStorage.setItem('prevLocation', area);
+			} else {
+			// Sorry! No Web Storage support..
+			}
+            
+            document.querySelector("#dynamicContent").innerHTML = "";
+			
+			var url = movieBase;
+			
+			// get value of form field
+			value = document.querySelector("#searchterm").value;
+		
+			// get rid of any leading and trailing spaces
+			value = value.trim();
+		
+			// if there's no band to search then bail out of the function
+			if(value.length < 1) return;
+			// send off the query
+
+			// replace spaces the user typed in the middle of the term with %20
+			// %20 is the hexadecimal value for a space
+			value = encodeURI(value);
+			
+			// send query
+			
+			
+		   $.ajax({
+         	url: movieBase,
+                data: {	startDate: today,
+                    radius: movieRadius,
+         	        zip: value,
+         	        jsonp: "movieLoaded",
+         	        api_key: movieKeyPaul
+                   },			
+         	dataType: "jsonp",
+           }); 
+		   
+		   weatherUrl = weatherBase + "?zip=" + value + ",us&appid=" + weatherKey + "&units=imperial";
+		   
+		   $.ajax({
+				dataType: "jsonp",
+				url: weatherUrl,
+				data: null,
+				success: weatherLoaded
+			});
+			
+			// utilize session storage
+			if(typeof(Storage) !== "undefined") {
+				document.querySelector("#previousEntries").innerHTML = "<p>Last Location Searched: " + sessionStorage.getItem('prevLocation') + "</p><p>Last ZIP Searched: " + sessionStorage.getItem('prevZip') + "</p>";
+			} else {
+			// Sorry! No Web Storage support..
+				document.querySelector("#previousEntries").innerHTML = "Sorry, no session storage supported!";
+			}
+		}
+		
+		function movieLoaded(data){
+		
+			// list of movies from OnConnect
+			var movies = data;
+			var html = "<div>";
+            html += "<h2>Movies in your Area:</h2>"
+            var prevName = "";
+			// loop through them
+			for(var i = 0; i < movies.length; i++){
+			
+				var movie = movies[i];
+                html += "<h3>" + movie.title + "</h3>";
+                
+                //Showtimes is an array of objects, this is where the theatre stuff is located
+                var showtimes = movie.showtimes;
+                //Loop through showtimes
+                for(var j = 0; j < showtimes.length; j++){
+                    html += "<ul>"
+                    var showtime = showtimes[j];
+                    //This is the theatreId that is needed to get theatre lat and long
+                    var name  = showtime.theatre.name;
+                    //Just saying that if the name is already printed to not print it again
+                    if(prevName != name) {
+                        html += "<li>" + name + "</li>";
+						html += "<ul><li>" + showtime.dateTime + "</li></ul>"
+                        prevName = name;
+                    }
+                    html += "</ul>"
+                }
+			}
+			
+			html += "</div>";
+			
+			document.querySelector("#dynamicContent").innerHTML += html;
+			$("#dynamicContent").fadeIn(500);
+		}
+		
+		function weatherLoaded(data){
+			
+			// current weather 
+			var weather = data;
+			var html = "<div>";
+            html += "<h2>The Weather:</h2>"
+            html += "<h3>For " + weather.name + "</h3>";
+			
+			// for session storage
+			area = weather.name;
+			
+			html += "<ul><li>Temperature: " + weather.main.temp + "&degF</li>";
+			html += "<li>Humidity: " + weather.main.humidity + "</li>";
+            for(var i = 0; i < weather.weather.length; i++){
+                stuff = weather.weather[i];
+                html += "<li>Description: " + stuff.description + "</li>";
+            }
+			html += "</li></div>";
+			
+			document.querySelector("#dynamicContent").innerHTML += html;
+			$("#dynamicContent").fadeIn(500);
+		}
+		
+	</script>
+	<style>
+		<!-- the main style tag -->
+		style {
+			display: inline;
+		}
+		
+		*{
+			font-family: 'Orbitron', sans-serif;
+			color: #f2f2f2;
+		}
+		
+		body {
+			background-color: #595959;
+		}
+		
+		h1 {
+			color: #3399ff;
+			font-size: 72px;
+			background-color: #f2f2f2;
+			width: 540px;
+			text-align: center;
+			border: 5px groove #000000;
+			margin-left: 50px;
+			margin-bottom 20px;
+		}
+		
+		h2 {
+			font-size: 40px;
+		}
+        
+        h3 {
+            color: #3399ff;
+        }
+		
+		#search{
+			box-shadow:inset 0px 1px 0px 0px #f7c5c0;
+			background:linear-gradient(to bottom, #3399ff 5%, #003399 100%);
+			background-color:#3399ff;
+			border-radius:6px;
+			border:1px solid #ffffff;
+			display:inline-block;
+			cursor:pointer;
+			color:#ffffff;
+			font-size:15px;
+			font-weight:bold;
+			padding:6px 24px;
+			text-decoration:none;
+			text-shadow:0px 1px 0px #000000;
+			margin-right:2em;
+		}
+
+		#search:hover {
+			background:linear-gradient(to bottom, #003399 5%, #3399ff 100%);
+			background-color:#3399ff;
+		}
+		
+		#search:active {
+			position:relative;
+			top:1px;
+		}
+		
+		#searchterm{
+			font-size:16px;
+			color: #000000;
+		}
+		
+		#slogan {
+			margin-left: 150px;
+			margin-top: 20px;
+			font-size: 20px;
+		}
+        
+        #theatreButton {
+            color:black;
+        }
+	</style>
+</head>
+<body>
+	<h1>Lazy Sunday</h1>
+	<p id="slogan"><i>Rainy? Go see a Movie!</i></p>
+	Enter your ZIP Code <input id="searchterm" type="text" size="20" maxlength="20" autofocus value="14623" /> 
+	<button type="button" id="search">Plan Date!<br /></button>
+	<div id="previousEntries">
+		<p>No searches yet!</p>
+	</div>
+	<div id="dynamicContent">
+		<p>No data yet!</p>
+	</div>
+</body>
+</html>
